@@ -117,3 +117,30 @@ end
 template "#{cassandra_home}/service_status.sh" do
   source 'service_status.sh.erb'
 end
+
+ruby_block "jmx_auth_enable" do
+  block do
+    jmx_password = ci.ciAttributes.has_key?("jmx_password") ? ci.ciAttributes.password : ""
+    Chef::Resource::File.new("#{cassandra_current}/conf/.nodetoolrc", run_context).tap do |file|
+      file.content "cassandra #{jmx_password}"
+      file.owner "cassandra"
+      file.group "cassandra"
+      file.mode 0400
+    end.run_action :create
+    
+    Chef::Resource::File.new("#{cassandra_current}/conf/jmxremote.access", run_context).tap do |file|
+      file.content "cassandra readwrite"
+      file.owner "cassandra"
+      file.group "cassandra"
+      file.mode 0400
+    end.run_action :create
+    
+    nodetoolfile = "#{cassandra_current}/bin/nodetool"
+    oldval = "NodeTool"
+    newval = "NodeTool -u cassandra -pwf /opt/cassandra/conf/.nodetoolrc"
+    nodetool_new = File.read(nodetoolfile).gsub(oldval,newval)
+    File.open(nodetoolfile, "w") {|file| file.puts nodetool_new}
+    
+  end
+  only_if { node[:apache_cassandra][:auth_enabled].eql?("true") && node[:apache_cassandra][:jmx_auth_enabled].eql?("true")}
+end 

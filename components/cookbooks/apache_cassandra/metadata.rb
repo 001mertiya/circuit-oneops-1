@@ -145,6 +145,17 @@ attribute 'password',
             :filter => {"all" => {"visible" => ('auth_enabled:eq:true')}}
           }
 
+attribute 'jmx_auth_enabled',
+          :description => 'Enable JMX authentication',
+          :required => 'required',
+          :default => 'false',
+          :format => {
+            :help => 'Enable JMX authentication',
+            :category => '3.Configuration Directives',
+            :order => 6,
+            :form => { 'field' => 'checkbox' }
+          }
+
 attribute 'checksum',
           :description => "Binary distribution checksum",
           :format => {

@@ -93,6 +93,7 @@ JVM_VERSION=${jvmver%_*}
 JVM_PATCH_VERSION=${jvmver#*_}
 <%
 cassandra_version = node[:version].to_f
+jmx_auth = node[:apache_cassandra][:jmx_auth_enabled].to_s
 %>
 <% if cassandra_version >= 3.0 %>	
 if [ "$JVM_VERSION" \< "1.8" ] ; then
@@ -226,11 +227,14 @@ JMX_PORT="7199"
 JVM_OPTS="$JVM_OPTS -Dcassandra.jmx.remote.port=$JMX_PORT"
 # if ssl is enabled the same port cannot be used for both jmx and rmi so either
 # pick another value for this property or comment out to use a random port (though see CASSANDRA-7087 for origins)
-
-JVM_OPTS="$JVM_OPTS -Dcom.sun.management.jmxremote.port=$JMX_PORT"
 JVM_OPTS="$JVM_OPTS -Dcom.sun.management.jmxremote.rmi.port=$JMX_PORT"
 JVM_OPTS="$JVM_OPTS -Dcom.sun.management.jmxremote.ssl=false"
+
+<% if jmx_auth.eql?("true")%>
+JVM_OPTS="$JVM_OPTS -Dcom.sun.management.jmxremote.authenticate=true"
+<% else %>
 JVM_OPTS="$JVM_OPTS -Dcom.sun.management.jmxremote.authenticate=false"
+<% end %>
 
 # jmx ssl options
 #JVM_OPTS="$JVM_OPTS -Dcom.sun.management.jmxremote.ssl=true"
@@ -245,8 +249,14 @@ JVM_OPTS="$JVM_OPTS -Dcom.sun.management.jmxremote.authenticate=false"
 # jmx authentication and authorization options. By default, auth is only
 # activated for remote connections but they can also be enabled for local only JMX
 ## Basic file based authn & authz
-#JVM_OPTS="$JVM_OPTS -Dcom.sun.management.jmxremote.password.file=/etc/cassandra/jmxremote.password"
-#JVM_OPTS="$JVM_OPTS -Dcom.sun.management.jmxremote.access.file=/etc/cassandra/jmxremote.access"
+<% if jmx_auth.eql?("true")%>
+JVM_OPTS="$JVM_OPTS -Dcom.sun.management.jmxremote.password.file=/opt/cassandra/conf/.nodetoolrc"
+JVM_OPTS="$JVM_OPTS -Dcom.sun.management.jmxremote.access.file=/opt/cassandra/conf/jmxremote.access"
+<% else %>
+#JVM_OPTS="$JVM_OPTS -Dcom.sun.management.jmxremote.password.file=/opt/cassandra/conf/jmxremote.password"
+#JVM_OPTS="$JVM_OPTS -Dcom.sun.management.jmxremote.access.file=/opt/cassandra/conf/jmxremote.access"
+<% end %>
+
 ## Custom auth settings which can be used as alternatives to JMX's out of the box auth utilities.
 ## JAAS login modules can be used for authentication by uncommenting these two properties.
 ## Cassandra ships with a LoginModule implementation - org.apache.cassandra.auth.CassandraLoginModule -
